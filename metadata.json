@@ -1,0 +1,5 @@
+{
+  "name": "FocusFlow Task Manager",
+  "description": "An intelligent daily work task manager featuring automated activity simulation, Kanban workflow tracking, smart reminders, and an AI-powered daily recap assistant.",
+  "requestFramePermissions": []
+}
