@@ -19,6 +19,7 @@ export interface Task {
   isArchived: boolean;
   archivedAt?: number;
   isPermanent?: boolean;
+  hiddenFromBoard?: boolean;
 }
 
 export interface AppState {

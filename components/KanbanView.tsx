@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Task, TaskStatus } from '../types';
+import ConfirmationModal from './ConfirmationModal';
 
 interface KanbanViewProps {
   tasks: Task[];
@@ -13,6 +14,19 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
   const [newStepInputs, setNewStepInputs] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const columns: { title: string; status: TaskStatus; color: string }[] = [
     { title: 'To Do', status: TaskStatus.TODO, color: 'bg-slate-100' },
@@ -38,7 +52,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
 
   const getTasksByStatus = (status: TaskStatus) => {
     if (status === TaskStatus.COMPLETED) {
-      return tasks.filter(t => t.status === status);
+      return tasks.filter(t => t.status === status && !t.hiddenFromBoard);
     }
     return tasks.filter(t => t.status === status && !t.isArchived);
   };
@@ -106,12 +120,24 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm('Are you sure you want to delete this task?')) {
-                          onDeleteTask(task.id);
+                        if (task.status === TaskStatus.COMPLETED) {
+                          setConfirmModal({
+                            isOpen: true,
+                            title: 'Remove from Board',
+                            message: 'Remove this completed task from the board? (It will remain in Archive for 7 days)',
+                            onConfirm: () => onUpdateTask(task.id, { hiddenFromBoard: true })
+                          });
+                        } else {
+                          setConfirmModal({
+                            isOpen: true,
+                            title: 'Delete Task',
+                            message: 'Are you sure you want to delete this task permanently?',
+                            onConfirm: () => onDeleteTask(task.id)
+                          });
                         }
                       }}
                       className="text-slate-300 hover:text-red-500 transition-colors px-2"
-                      title="Delete task"
+                      title={task.status === TaskStatus.COMPLETED ? "Remove from board" : "Delete task"}
                     >
                       ✕
                     </button>
@@ -196,6 +222,16 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
           </div>
         </div>
       ))}
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

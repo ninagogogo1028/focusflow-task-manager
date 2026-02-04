@@ -110,7 +110,7 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
     <div className="relative w-full md:w-auto" ref={containerRef}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full md:w-auto bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 cursor-pointer flex items-center justify-between hover:border-indigo-300 transition-colors"
+        className="w-full md:w-auto bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 cursor-pointer flex items-center justify-between hover:border-indigo-300 transition-colors"
       >
         <span className="text-sm font-medium text-slate-600">
           {value ? formatDisplayDate(value) : 'Select Date'}
@@ -134,13 +134,13 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
           </div>
 
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 mb-2 text-center">
-            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-              <div key={day} className="text-[10px] font-bold text-slate-400">
-                {day}
-              </div>
-            ))}
+      <div className="grid grid-cols-7 mb-2 text-center">
+        {['SUN.', 'MON.', 'TUE.', 'WED.', 'THU.', 'FRI.', 'SAT.'].map(day => (
+          <div key={day} className="text-[10px] font-bold text-slate-400">
+            {day}
           </div>
+        ))}
+      </div>
 
           {/* Days Grid */}
           <div className="grid grid-cols-7 gap-1 place-items-center">

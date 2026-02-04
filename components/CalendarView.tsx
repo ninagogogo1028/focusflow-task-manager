@@ -40,7 +40,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
       </div>
 
       <div className="grid grid-cols-7 gap-px bg-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+        {['SUN.', 'MON.', 'TUE.', 'WED.', 'THU.', 'FRI.', 'SAT.'].map(d => (
           <div key={d} className="bg-slate-50 p-2 md:p-4 text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase">
             {d}
           </div>

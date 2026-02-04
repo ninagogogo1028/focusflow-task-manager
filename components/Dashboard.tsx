@@ -3,6 +3,7 @@ import { Task, TaskStatus } from '../types';
 import { parseAutoTask } from '../services/geminiService';
 import DailyReportModal from './DailyReportModal';
 import CustomDatePicker from './CustomDatePicker';
+import ConfirmationModal from './ConfirmationModal';
 
 interface DashboardProps {
   tasks: Task[];
@@ -20,6 +21,19 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showReport, setShowReport] = useState(false);
+
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Filter tasks to show only those due on or before today
   const activeTasks = tasks.filter(t => !t.isArchived && t.dueDate <= new Date().toISOString().split('T')[0]);
@@ -276,9 +290,12 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm('Are you sure you want to delete this task?')) {
-                        onDeleteTask(task.id);
-                      }
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'Delete Task',
+                        message: 'Are you sure you want to delete this task?',
+                        onConfirm: () => onDeleteTask(task.id)
+                      });
                     }}
                     className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-2"
                     title="Delete task"
@@ -299,6 +316,16 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
       </div>
 
       {showReport && <DailyReportModal tasks={tasks} onClose={() => setShowReport(false)} />}
+      
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
     </div>
   );
 };
