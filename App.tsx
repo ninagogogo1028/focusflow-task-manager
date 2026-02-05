@@ -57,7 +57,7 @@ const App: React.FC = () => {
   // Morning Recap Logic
   useEffect(() => {
     // Use a versioned key to force reset for users who missed it due to bugs
-    const RECAP_STORAGE_KEY = 'last_recap_date_v4';
+    const RECAP_STORAGE_KEY = 'last_recap_date_v5';
     const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
     const now = new Date();
     const today = now.toDateString();
@@ -103,6 +103,10 @@ const App: React.FC = () => {
         localStorage.setItem(RECAP_STORAGE_KEY, today);
       }).catch(err => {
         console.error("Failed to generate recap:", err);
+        // Fallback content if AI fails (e.g. network issue or API key restriction)
+        const fallbackContent = `Good Morning! ☀️\n\nHere is your daily summary:\n\n- Overdue Tasks: ${overdue.length}\n- Today's Tasks: ${todayTasks.length}\n\nLet's have a productive day! (Note: AI generation failed, please check console for details)`;
+        setRecapContent(fallbackContent);
+        setShowRecap(true);
         localStorage.setItem(RECAP_STORAGE_KEY, today);
       });
     }
