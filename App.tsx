@@ -56,22 +56,48 @@ const App: React.FC = () => {
 
   // Morning Recap Logic
   useEffect(() => {
-    const lastRecapDate = localStorage.getItem('last_recap_date');
-    const today = new Date().toDateString();
+    // Use a versioned key to force reset for users who missed it due to bugs
+    const RECAP_STORAGE_KEY = 'last_recap_date_v2';
+    const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
+    const now = new Date();
+    const today = now.toDateString();
     
-    if (lastRecapDate !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+    // Get YYYY-MM-DD in local time
+    const getLocalISODate = (date: Date) => {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split('T')[0];
+    };
 
-      const unfinished = tasks.filter(t => !t.isArchived && t.status !== TaskStatus.COMPLETED && t.dueDate <= yesterdayStr);
+    if (lastRecapDate !== today) {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Use strictly before today (local time) to catch all overdue/yesterday tasks
+      const todayISO = getLocalISODate(now);
+
+      const unfinished = tasks.filter(t => 
+        !t.isArchived && 
+        t.status !== TaskStatus.COMPLETED && 
+        t.dueDate < todayISO // Tasks due before today
+      );
       
       if (unfinished.length > 0) {
         getDailyRecap(unfinished).then(content => {
           setRecapContent(content);
           setShowRecap(true);
-          localStorage.setItem('last_recap_date', today);
+          localStorage.setItem(RECAP_STORAGE_KEY, today);
+        }).catch(err => {
+          console.error("Failed to generate recap:", err);
+          // Optional: Show a fallback recap or notification?
+          // For now, we just log it. If it fails, we don't set the flag so it might try again?
+          // But to avoid infinite loops on error, we should probably set the flag or have a retry limit.
+          // Let's set the flag to avoid annoying the user with errors.
+          localStorage.setItem(RECAP_STORAGE_KEY, today);
         });
+      } else {
+         // Even if no unfinished tasks, we mark today as checked so we don't keep checking
+         localStorage.setItem(RECAP_STORAGE_KEY, today);
       }
     }
   }, [tasks]);
