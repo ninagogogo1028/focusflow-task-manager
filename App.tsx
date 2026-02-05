@@ -73,12 +73,6 @@ const App: React.FC = () => {
       // Use strictly before today (local time) to catch all overdue/yesterday tasks
       const todayISO = getLocalISODate(now);
       
-      console.log('Morning Recap Check:', { 
-        todayISO, 
-        lastRecapDate, 
-        todayString: today 
-      });
-
       const overdue = tasks.filter(t => 
         !t.isArchived && 
         t.status !== TaskStatus.COMPLETED && 
@@ -91,11 +85,6 @@ const App: React.FC = () => {
         t.dueDate === todayISO // Tasks due today
       );
       
-      console.log('Tasks found:', { 
-        overdueCount: overdue.length, 
-        todayCount: todayTasks.length 
-      });
-      
       // Always trigger recap to greet the user, even if no overdue tasks
       getDailyRecap(overdue, todayTasks).then(content => {
         setRecapContent(content);
@@ -104,7 +93,7 @@ const App: React.FC = () => {
       }).catch(err => {
         console.error("Failed to generate recap:", err);
         // Fallback content if AI fails (e.g. network issue or API key restriction)
-        const fallbackContent = `Good Morning! ☀️\n\nHere is your daily summary:\n\n- Overdue Tasks: ${overdue.length}\n- Today's Tasks: ${todayTasks.length}\n\nLet's have a productive day! (Note: AI generation failed, please check console for details)`;
+        const fallbackContent = `Here is your daily summary:\n\n- Overdue Tasks: ${overdue.length}\n- Today's Tasks: ${todayTasks.length}\n\nLet's have a productive day!`;
         setRecapContent(fallbackContent);
         setShowRecap(true);
         localStorage.setItem(RECAP_STORAGE_KEY, today);
