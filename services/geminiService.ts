@@ -35,13 +35,29 @@ export const parseAutoTask = async (activityDescription: string): Promise<Partia
   }
 };
 
-export const getDailyRecap = async (unfinishedTasks: Task[]): Promise<string> => {
-  if (unfinishedTasks.length === 0) return "Great job! You completed everything yesterday.";
+export const getDailyRecap = async (overdueTasks: Task[], todayTasks: Task[]): Promise<string> => {
+  const overdueList = overdueTasks.map(t => `- [OVERDUE] ${t.title}`).join('\n');
+  const todayList = todayTasks.map(t => `- [TODAY] ${t.title}`).join('\n');
   
-  const tasksList = unfinishedTasks.map(t => `- ${t.title}: ${t.description}`).join('\n');
+  const prompt = `
+    Good morning! Here is the user's status:
+    
+    Overdue Tasks (from yesterday or earlier):
+    ${overdueList || "None! Great job clearing everything."}
+    
+    Tasks Scheduled for Today:
+    ${todayList || "None scheduled yet."}
+    
+    Please generate a friendly, encouraging "Daily Morning Briefing".
+    1. Acknowledge if they cleared yesterday's tasks (celebrate it!).
+    2. Summarize the overdue tasks if any (gentle reminder).
+    3. Highlight today's focus.
+    4. Keep it concise, professional yet warm. Use emojis.
+  `;
+
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Here are unfinished tasks from yesterday:\n${tasksList}\n\nSummarize them into an encouraging morning to-do list for today. Keep it brief and motivating.`,
+    contents: prompt,
   });
 
   return response.text;

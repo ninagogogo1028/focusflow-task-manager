@@ -57,7 +57,7 @@ const App: React.FC = () => {
   // Morning Recap Logic
   useEffect(() => {
     // Use a versioned key to force reset for users who missed it due to bugs
-    const RECAP_STORAGE_KEY = 'last_recap_date_v2';
+    const RECAP_STORAGE_KEY = 'last_recap_date_v3';
     const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
     const now = new Date();
     const today = now.toDateString();
@@ -70,35 +70,30 @@ const App: React.FC = () => {
     };
 
     if (lastRecapDate !== today) {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
       // Use strictly before today (local time) to catch all overdue/yesterday tasks
       const todayISO = getLocalISODate(now);
 
-      const unfinished = tasks.filter(t => 
+      const overdue = tasks.filter(t => 
         !t.isArchived && 
         t.status !== TaskStatus.COMPLETED && 
         t.dueDate < todayISO // Tasks due before today
       );
+
+      const todayTasks = tasks.filter(t => 
+        !t.isArchived && 
+        t.status !== TaskStatus.COMPLETED && 
+        t.dueDate === todayISO // Tasks due today
+      );
       
-      if (unfinished.length > 0) {
-        getDailyRecap(unfinished).then(content => {
-          setRecapContent(content);
-          setShowRecap(true);
-          localStorage.setItem(RECAP_STORAGE_KEY, today);
-        }).catch(err => {
-          console.error("Failed to generate recap:", err);
-          // Optional: Show a fallback recap or notification?
-          // For now, we just log it. If it fails, we don't set the flag so it might try again?
-          // But to avoid infinite loops on error, we should probably set the flag or have a retry limit.
-          // Let's set the flag to avoid annoying the user with errors.
-          localStorage.setItem(RECAP_STORAGE_KEY, today);
-        });
-      } else {
-         // Even if no unfinished tasks, we mark today as checked so we don't keep checking
-         localStorage.setItem(RECAP_STORAGE_KEY, today);
-      }
+      // Always trigger recap to greet the user, even if no overdue tasks
+      getDailyRecap(overdue, todayTasks).then(content => {
+        setRecapContent(content);
+        setShowRecap(true);
+        localStorage.setItem(RECAP_STORAGE_KEY, today);
+      }).catch(err => {
+        console.error("Failed to generate recap:", err);
+        localStorage.setItem(RECAP_STORAGE_KEY, today);
+      });
     }
   }, [tasks]);
 
