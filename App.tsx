@@ -57,7 +57,7 @@ const App: React.FC = () => {
   // Morning Recap Logic
   useEffect(() => {
     // Use a versioned key to force reset for users who missed it due to bugs
-    const RECAP_STORAGE_KEY = 'last_recap_date_v3';
+    const RECAP_STORAGE_KEY = 'last_recap_date_v4';
     const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
     const now = new Date();
     const today = now.toDateString();
@@ -72,6 +72,12 @@ const App: React.FC = () => {
     if (lastRecapDate !== today) {
       // Use strictly before today (local time) to catch all overdue/yesterday tasks
       const todayISO = getLocalISODate(now);
+      
+      console.log('Morning Recap Check:', { 
+        todayISO, 
+        lastRecapDate, 
+        todayString: today 
+      });
 
       const overdue = tasks.filter(t => 
         !t.isArchived && 
@@ -84,6 +90,11 @@ const App: React.FC = () => {
         t.status !== TaskStatus.COMPLETED && 
         t.dueDate === todayISO // Tasks due today
       );
+      
+      console.log('Tasks found:', { 
+        overdueCount: overdue.length, 
+        todayCount: todayTasks.length 
+      });
       
       // Always trigger recap to greet the user, even if no overdue tasks
       getDailyRecap(overdue, todayTasks).then(content => {
