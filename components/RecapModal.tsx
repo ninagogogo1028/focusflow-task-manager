@@ -11,8 +11,9 @@ const RecapModal: React.FC<RecapModalProps> = ({ content, onClose }) => {
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
       <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden animate-pop-in">
         <div className="bg-indigo-600 p-8 text-white relative">
-          <h2 className="text-2xl font-black mb-2">Good Morning! ☕️</h2>
-          <p className="text-indigo-100 opacity-80">Here's your smart carry-over list for today.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200 mb-2">Your daily plan</p>
+          <h2 className="text-2xl font-black mb-2">今天，从清晰开始</h2>
+          <p className="text-indigo-100 opacity-90">已为你整理逾期事项、今日任务和优先方向。</p>
           <div className="absolute top-0 right-0 p-8 opacity-20 text-6xl">✨</div>
         </div>
         
@@ -27,7 +28,7 @@ const RecapModal: React.FC<RecapModalProps> = ({ content, onClose }) => {
             onClick={onClose}
             className="w-full mt-8 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
           >
-            Let's get to work
+            开始今天的计划
           </button>
         </div>
       </div>

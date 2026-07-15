@@ -9,14 +9,26 @@ import ActivityMonitor from './components/ActivityMonitor';
 import NotificationCenter, { NotificationItem } from './components/NotificationCenter';
 import RecapModal from './components/RecapModal';
 import { getDailyRecap } from './services/geminiService';
+import PricingModal from './components/PricingModal';
+import ApiKeyModal from './components/ApiKeyModal';
+import { hasUserApiKey } from './services/apiKeyStorage';
 
 const App: React.FC = () => {
+  const tabTitles = {
+    dashboard: '今日计划',
+    kanban: '任务看板',
+    calendar: '日历',
+    archive: '已完成',
+  } as const;
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('focusflow_tasks');
     return saved ? JSON.parse(saved) : [];
   });
   const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'calendar' | 'archive'>('dashboard');
   const [showRecap, setShowRecap] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyConnected, setApiKeyConnected] = useState(hasUserApiKey());
   const [recapContent, setRecapContent] = useState('');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [firedReminders, setFiredReminders] = useState<Set<string>>(new Set());
@@ -169,9 +181,18 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto relative flex flex-col">
         <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
           <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent capitalize">
-            {activeTab}
+            {tabTitles[activeTab]}
           </h1>
-          <ActivityMonitor onAddTask={addTask} />
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-flex text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Free</span>
+            <button onClick={() => setShowPricing(true)} className="text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors">
+              查看 Pro
+            </button>
+            <button onClick={() => setShowApiKey(true)} className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${apiKeyConnected ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-700 bg-slate-100 hover:bg-slate-200'}`}>
+              {apiKeyConnected ? 'AI 已连接' : '连接 AI'}
+            </button>
+            <ActivityMonitor onAddTask={addTask} />
+          </div>
         </header>
 
         <div className="p-4 md:p-8 flex-1 pb-24 md:pb-8">
@@ -191,6 +212,8 @@ const App: React.FC = () => {
 
       <NotificationCenter notifications={notifications} onClose={removeNotification} />
       {showRecap && <RecapModal content={recapContent} onClose={() => setShowRecap(false)} />}
+      {showPricing && <PricingModal onClose={() => setShowPricing(false)} />}
+      {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} onChanged={() => setApiKeyConnected(hasUserApiKey())} />}
     </div>
   );
 };

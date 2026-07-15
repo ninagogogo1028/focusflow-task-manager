@@ -1,64 +1,32 @@
+import { Task } from "../types";
+import { getUserAiConfig } from "./apiKeyStorage";
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { Task, TaskStatus } from "../types";
+type AiAction = "parse-task" | "daily-recap";
 
-// 使用用户提供的 API Key
-const ai = new GoogleGenAI({ apiKey: "AIzaSyAZllqUqVr7foLR3DWjPLibOwy047kNEIg" });
-
-export const parseAutoTask = async (activityDescription: string): Promise<Partial<Task>> => {
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Analyze the following computer activity: "${activityDescription}". 
-    Create a professional task title and a short description. 
-    Suggest 2-3 logical "next steps" for this workflow as an array of strings.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          description: { type: Type.STRING },
-          nextSteps: { 
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
-        },
-        required: ["title", "description", "nextSteps"]
-      }
-    }
+async function callAi<T>(action: AiAction, payload: unknown): Promise<T> {
+  const response = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, payload, userAiConfig: getUserAiConfig() || undefined }),
   });
 
-  try {
-    return JSON.parse(response.text);
-  } catch (e) {
-    return { title: "New Activity Task", description: activityDescription, nextSteps: ["Review activity"] };
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "AI service is temporarily unavailable");
   }
+
+  return response.json() as Promise<T>;
+}
+
+export const parseAutoTask = async (activityDescription: string): Promise<Partial<Task>> => {
+  const result = await callAi<{ task: Partial<Task> }>("parse-task", { activityDescription });
+  return result.task;
 };
 
 export const getDailyRecap = async (overdueTasks: Task[], todayTasks: Task[]): Promise<string> => {
-  const overdueList = overdueTasks.map(t => `- [OVERDUE] ${t.title}`).join('\n');
-  const todayList = todayTasks.map(t => `- [TODAY] ${t.title}`).join('\n');
-  
-  const prompt = `
-    Good morning! Here is the user's status:
-    
-    Overdue Tasks (from yesterday or earlier):
-    ${overdueList || "None! Great job clearing everything."}
-    
-    Tasks Scheduled for Today:
-    ${todayList || "None scheduled yet."}
-    
-    Please generate a friendly, encouraging "Daily Morning Briefing".
-    1. Acknowledge if they cleared yesterday's tasks (celebrate it!).
-    2. Summarize the overdue tasks if any (gentle reminder).
-    3. Highlight today's focus.
-    4. Keep it concise, professional yet warm. Use emojis.
-  `;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
+  const result = await callAi<{ content: string }>("daily-recap", {
+    overdueTasks: overdueTasks.map(({ title }) => ({ title })),
+    todayTasks: todayTasks.map(({ title }) => ({ title })),
   });
-
-  return response.text;
+  return result.content;
 };
