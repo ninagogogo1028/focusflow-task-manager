@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AiProvider, clearUserApiKey, getDefaultModel, getUserAiConfig, isApiKeyRemembered, saveUserAiConfig } from '../services/apiKeyStorage';
 import { useI18n } from '../i18n';
+import { track } from '../services/analytics';
 
 interface ApiKeyModalProps { onClose: () => void; onChanged: () => void; }
 
@@ -30,6 +31,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onClose, onChanged }) => {
 
   const save = () => {
     saveUserAiConfig({ provider, apiKey, model }, remember);
+    track('ai_connected', { provider, version: '0.2.0-beta' });
     onChanged();
     onClose();
   };

@@ -16,6 +16,9 @@ import { useI18n } from './i18n';
 import WelcomeModal from './components/WelcomeModal';
 import CaptureModal from './components/CaptureModal';
 import ProductGuideModal from './components/ProductGuideModal';
+import FeedbackModal from './components/FeedbackModal';
+import DataSettingsModal from './components/DataSettingsModal';
+import { track } from './services/analytics';
 
 const App: React.FC = () => {
   const { locale, setLocale, t } = useI18n();
@@ -42,6 +45,8 @@ const App: React.FC = () => {
   const [showCapture, setShowCapture] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('focusflow_onboarding_v1'));
   const [showProductGuide, setShowProductGuide] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showDataSettings, setShowDataSettings] = useState(false);
   const [apiKeyConnected, setApiKeyConnected] = useState(hasUserApiKey());
   const [recapContent, setRecapContent] = useState('');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -50,6 +55,9 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('focusflow_tasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  useEffect(() => { track('app_opened', { locale, version: '0.2.0-beta' }); }, []);
+  useEffect(() => { if (activeTab === 'dashboard') track('daily_plan_viewed', { locale, version: '0.2.0-beta' }); }, [activeTab]);
 
   // Check for reminders
   useEffect(() => {
@@ -130,6 +138,7 @@ const App: React.FC = () => {
 
   const addTask = (newTask: Task) => {
     setTasks(prev => [newTask, ...prev]);
+    track('task_created', { category: newTask.category || 'uncategorized', source: newTask.source || 'manual', version: '0.2.0-beta' });
     // Removed "Task added" notification as per user request
   };
 
@@ -137,6 +146,7 @@ const App: React.FC = () => {
     setTasks(prev => prev.map(t => {
       if (t.id !== id) return t;
       if (status === TaskStatus.COMPLETED) {
+        track('task_completed', { category: t.category || 'uncategorized', source: t.source || 'manual', version: '0.2.0-beta' });
         return { ...t, status, isArchived: true, archivedAt: Date.now() };
       }
       return { ...t, status, isArchived: false, archivedAt: undefined };
@@ -144,6 +154,10 @@ const App: React.FC = () => {
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
+    if (updates.status === TaskStatus.COMPLETED) {
+      const task = tasks.find((item) => item.id === id);
+      if (task) track('task_completed', { category: task.category || 'uncategorized', source: task.source || 'manual', version: '0.2.0-beta' });
+    }
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
@@ -204,8 +218,10 @@ const App: React.FC = () => {
               <button onClick={() => setLocale('en')} className={`px-2.5 py-1.5 rounded-lg ${locale === 'en' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>EN</button>
             </div>
             <button onClick={() => setShowWelcome(true)} className="hidden lg:inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600">{t('help')}</button>
+            <button onClick={() => setShowFeedback(true)} className="inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600" title={locale === 'zh-CN' ? '反馈' : 'Feedback'}><span className="lg:hidden">💬</span><span className="hidden lg:inline">{locale === 'zh-CN' ? '反馈' : 'Feedback'}</span></button>
+            <button onClick={() => setShowDataSettings(true)} className="inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600" title={locale === 'zh-CN' ? '数据与隐私' : 'Data & Privacy'}><span className="lg:hidden">⚙</span><span className="hidden lg:inline">{locale === 'zh-CN' ? '数据' : 'Data'}</span></button>
             <span className="hidden xl:inline-flex text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">{t('free')}</span>
-            <button onClick={() => setShowPricing(true)} className="text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors">
+            <button onClick={() => { setShowPricing(true); track('pro_viewed', { locale, version: '0.2.0-beta' }); }} className="text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors">
               {t('pro')}
             </button>
             <button onClick={() => setShowApiKey(true)} className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${apiKeyConnected ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-700 bg-slate-100 hover:bg-slate-200'}`}>
@@ -235,8 +251,10 @@ const App: React.FC = () => {
       {showPricing && <PricingModal onClose={() => setShowPricing(false)} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} onChanged={() => setApiKeyConnected(hasUserApiKey())} />}
       {showCapture && <CaptureModal locale={locale} onClose={() => setShowCapture(false)} onAddTask={addTask} onConnectAi={() => setShowApiKey(true)} />}
-      {showWelcome && <WelcomeModal locale={locale} onFinish={() => { localStorage.setItem('focusflow_onboarding_v1', 'done'); setShowWelcome(false); }} />}
+      {showWelcome && <WelcomeModal locale={locale} onFinish={() => { localStorage.setItem('focusflow_onboarding_v1', 'done'); track('onboarding_completed', { locale, version: '0.2.0-beta' }); setShowWelcome(false); }} />}
       {showProductGuide && <ProductGuideModal onClose={() => setShowProductGuide(false)} onOpenAi={() => setShowApiKey(true)} />}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} onSubmitted={() => track('feedback_submitted', { locale, version: '0.2.0-beta' })} />}
+      {showDataSettings && <DataSettingsModal tasks={tasks} onReplaceTasks={setTasks} onClose={() => setShowDataSettings(false)} />}
     </div>
   );
 };

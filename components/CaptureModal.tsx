@@ -3,6 +3,7 @@ import { Task, TaskStatus } from '../types';
 import { parseAutoTask } from '../services/geminiService';
 import { hasUserApiKey } from '../services/apiKeyStorage';
 import { Locale } from '../i18n';
+import { track } from '../services/analytics';
 
 interface CaptureModalProps { locale: Locale; onClose: () => void; onAddTask: (task: Task) => void; onConnectAi: () => void; }
 
@@ -25,14 +26,16 @@ const CaptureModal: React.FC<CaptureModalProps> = ({ locale, onClose, onAddTask,
     if (!hasUserApiKey()) { onClose(); onConnectAi(); return; }
     if (!content.trim()) { setError(zh ? '请先粘贴文字或选择文本文件。' : 'Paste text or choose a text file first.'); return; }
     setLoading(true); setError('');
+    track('ai_capture_started', { locale, version: '0.2.0-beta' });
     try {
       const suggestion = await parseAutoTask(fileName ? `${zh ? '从文件提取任务' : 'Extract a task from file'}: ${fileName}` : content.slice(0, 500), content);
       onAddTask({
         id: Date.now().toString(), title: suggestion.title || (zh ? 'AI 捕捉任务' : 'AI captured task'), description: suggestion.description || '',
         status: TaskStatus.TODO, createdAt: Date.now(), dueDate: new Date().toISOString().split('T')[0], nextSteps: suggestion.nextSteps || [], source: 'auto', category: 'work', isArchived: false,
       });
+      track('ai_capture_succeeded', { locale, result: 'task_created', version: '0.2.0-beta' });
       onClose();
-    } catch (e) { setError(zh ? 'AI 处理失败，请检查服务商、模型名称和 API Key。' : 'AI request failed. Check your provider, model and API key.'); }
+    } catch (e) { track('ai_capture_failed', { locale, error_type: 'provider_or_network', version: '0.2.0-beta' }); setError(zh ? 'AI 处理失败，请检查服务商、模型名称和 API Key。' : 'AI request failed. Check your provider, model and API key.'); }
     finally { setLoading(false); }
   };
 

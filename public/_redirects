@@ -1,2 +1,3 @@
 /api/ai  /.netlify/functions/ai  200
+/api/events  /.netlify/functions/events  200
 /*  /index.html  200

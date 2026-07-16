@@ -5,6 +5,7 @@ import DailyReportModal from './DailyReportModal';
 import CustomDatePicker from './CustomDatePicker';
 import ConfirmationModal from './ConfirmationModal';
 import { useI18n } from '../i18n';
+import { track } from '../services/analytics';
 
 interface DashboardProps {
   tasks: Task[];
@@ -166,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
           </div>
         </div>
         <button 
-          onClick={() => setShowReport(true)}
+          onClick={() => { setShowReport(true); track('report_opened', { locale, version: '0.2.0-beta' }); }}
           className="ml-6 bg-slate-900 text-white p-6 rounded-3xl font-semibold hover:bg-slate-800 transition-colors shadow-lg active:scale-95 flex items-center justify-center"
           title="Generate Daily Report"
         >
