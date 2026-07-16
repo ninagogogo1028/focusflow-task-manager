@@ -7,6 +7,12 @@ export default defineConfig(() => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/api/ai': {
+            target: 'https://focusflow-task-manager.netlify.app',
+            changeOrigin: true,
+          },
+        },
       },
       plugins: [react()],
       resolve: {

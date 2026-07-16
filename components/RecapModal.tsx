@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useI18n } from '../i18n';
 
 interface RecapModalProps {
   content: string;
@@ -7,13 +8,15 @@ interface RecapModalProps {
 }
 
 const RecapModal: React.FC<RecapModalProps> = ({ content, onClose }) => {
+  const { locale } = useI18n();
+  const zh = locale === 'zh-CN';
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
       <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden animate-pop-in">
         <div className="bg-indigo-600 p-8 text-white relative">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200 mb-2">Your daily plan</p>
-          <h2 className="text-2xl font-black mb-2">今天，从清晰开始</h2>
-          <p className="text-indigo-100 opacity-90">已为你整理逾期事项、今日任务和优先方向。</p>
+          <h2 className="text-2xl font-black mb-2">{zh ? '今天，从清晰开始' : 'Start today with clarity'}</h2>
+          <p className="text-indigo-100 opacity-90">{zh ? '已为你整理逾期事项、今日任务和优先方向。' : 'Your overdue items, today’s tasks and priorities are ready.'}</p>
           <div className="absolute top-0 right-0 p-8 opacity-20 text-6xl">✨</div>
         </div>
         
@@ -28,7 +31,7 @@ const RecapModal: React.FC<RecapModalProps> = ({ content, onClose }) => {
             onClick={onClose}
             className="w-full mt-8 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
           >
-            开始今天的计划
+            {zh ? '开始今天的计划' : 'Start My Day'}
           </button>
         </div>
       </div>

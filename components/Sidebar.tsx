@@ -1,17 +1,20 @@
 
 import React from 'react';
+import { useI18n } from '../i18n';
 
 interface SidebarProps {
   activeTab: 'dashboard' | 'kanban' | 'calendar' | 'archive';
   setActiveTab: (tab: 'dashboard' | 'kanban' | 'calendar' | 'archive') => void;
+  onOpenGuide: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpenGuide }) => {
+  const { t } = useI18n();
   const menuItems = [
-    { id: 'dashboard', icon: '☀️', label: '今日' },
-    { id: 'kanban', icon: '📋', label: '看板' },
-    { id: 'calendar', icon: '📅', label: '日历' },
-    { id: 'archive', icon: '📦', label: '完成' },
+    { id: 'dashboard', icon: '☀️', label: t('today') },
+    { id: 'kanban', icon: '📋', label: t('board') },
+    { id: 'calendar', icon: '📅', label: t('calendar') },
+    { id: 'archive', icon: '📦', label: t('archive') },
   ];
 
   return (
@@ -43,15 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           ))}
         </nav>
 
-        <div className="mt-auto p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-[2rem] border border-indigo-100/50">
+        <button onClick={onOpenGuide} className="mt-auto text-left p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-[2rem] border border-indigo-100/50 hover:border-indigo-300 hover:shadow-md transition-all group">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">🤖</span>
-            <p className="text-xs text-indigo-900 font-bold tracking-wider">每日清晰计划</p>
+            <span className="text-lg group-hover:scale-110 transition-transform">🤖</span>
+            <p className="text-xs text-indigo-900 font-bold tracking-wider">{t('sidebarTitle')}</p>
           </div>
           <p className="text-xs text-indigo-700/80 leading-relaxed font-medium">
-            自动整理逾期事项与今日任务，让你打开 FocusFlow 就知道先做什么。
+            {t('sidebarDesc')}
           </p>
-        </div>
+          <p className="text-[11px] text-indigo-600 font-bold mt-3">{t('help')} →</p>
+        </button>
       </aside>
 
       {/* Mobile Bottom Navigation */}

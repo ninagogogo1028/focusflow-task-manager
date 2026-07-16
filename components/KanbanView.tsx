@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus } from '../types';
 import ConfirmationModal from './ConfirmationModal';
+import { useI18n } from '../i18n';
 
 interface KanbanViewProps {
   tasks: Task[];
@@ -11,6 +12,7 @@ interface KanbanViewProps {
 }
 
 const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdateTask, onDeleteTask }) => {
+  const { locale, t } = useI18n();
   const [newStepInputs, setNewStepInputs] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -29,9 +31,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
   });
 
   const columns: { title: string; status: TaskStatus; color: string }[] = [
-    { title: 'To Do', status: TaskStatus.TODO, color: 'bg-slate-100' },
-    { title: 'In Progress', status: TaskStatus.IN_PROGRESS, color: 'bg-amber-50' },
-    { title: 'Done', status: TaskStatus.COMPLETED, color: 'bg-emerald-50' },
+    { title: t('todo'), status: TaskStatus.TODO, color: 'bg-slate-100' },
+    { title: t('inProgress'), status: TaskStatus.IN_PROGRESS, color: 'bg-amber-50' },
+    { title: t('done'), status: TaskStatus.COMPLETED, color: 'bg-emerald-50' },
   ];
 
   const startEditing = (task: Task) => {
@@ -104,8 +106,8 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                           if (e.key === 'Escape') cancelEdit();
                         }}
                       />
-                      <button onClick={() => saveEdit(task.id)} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">Save</button>
-                      <button onClick={cancelEdit} className="text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded">Cancel</button>
+                      <button onClick={() => saveEdit(task.id)} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">{t('save')}</button>
+                      <button onClick={cancelEdit} className="text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded">{t('cancel')}</button>
                     </div>
                   ) : (
                     <h4 
@@ -123,21 +125,21 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                         if (task.status === TaskStatus.COMPLETED) {
                           setConfirmModal({
                             isOpen: true,
-                            title: 'Remove from Board',
-                            message: 'Remove this completed task from the board? (It will remain in Archive for 7 days)',
+                            title: locale === 'zh-CN' ? '从看板移除' : 'Remove from Board',
+                            message: locale === 'zh-CN' ? '从看板移除这个已完成任务？它仍会保留在归档中。' : 'Remove this completed task from the board? It will remain in Archive.',
                             onConfirm: () => onUpdateTask(task.id, { hiddenFromBoard: true })
                           });
                         } else {
                           setConfirmModal({
                             isOpen: true,
-                            title: 'Delete Task',
-                            message: 'Are you sure you want to delete this task permanently?',
+                            title: t('deleteTask'),
+                            message: t('deleteConfirm'),
                             onConfirm: () => onDeleteTask(task.id)
                           });
                         }
                       }}
                       className="text-slate-300 hover:text-red-500 transition-colors px-2"
-                      title={task.status === TaskStatus.COMPLETED ? "Remove from board" : "Delete task"}
+                      title={task.status === TaskStatus.COMPLETED ? (locale === 'zh-CN' ? '从看板移除' : 'Remove from board') : t('deleteTask')}
                     >
                       ✕
                     </button>
@@ -152,7 +154,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                   {/* 提醒时间设置 */}
                   <div className="flex flex-col gap-1.5 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
                     <label className="text-[10px] font-bold text-indigo-400 uppercase flex items-center gap-1">
-                      ⏰ Reminder Time
+                      {t('reminder')}
                     </label>
                     <input 
                       type="time"
@@ -164,7 +166,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
 
                   {/* 工作流步骤 */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Workflow Next Steps</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">{t('nextSteps')}</label>
                     <div className="space-y-1.5">
                       {(task.nextSteps || []).map((step, idx) => (
                         <div key={idx} className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 group/step">
@@ -185,7 +187,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                         value={newStepInputs[task.id] || ''}
                         onChange={(e) => setNewStepInputs(prev => ({ ...prev, [task.id]: e.target.value }))}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddStep(task.id, task.nextSteps)}
-                        placeholder="Add next step..."
+                        placeholder={t('addStep')}
                         className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none"
                       />
                       <button 
@@ -203,7 +205,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                         onClick={() => onUpdateStatus(task.id, col.status === TaskStatus.IN_PROGRESS ? TaskStatus.TODO : TaskStatus.IN_PROGRESS)}
                         className="text-[10px] font-bold text-indigo-600 hover:underline"
                       >
-                        Move Back
+                        {t('moveBack')}
                       </button>
                     )}
                     <div className="flex-1" />
@@ -212,7 +214,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
                         onClick={() => onUpdateStatus(task.id, col.status === TaskStatus.TODO ? TaskStatus.IN_PROGRESS : TaskStatus.COMPLETED)}
                         className="text-[10px] font-bold text-indigo-600 hover:underline"
                       >
-                        Next Stage
+                        {t('nextStage')}
                       </button>
                     )}
                   </div>
@@ -229,8 +231,8 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onUpdateStatus, onUpdate
         onConfirm={confirmModal.onConfirm}
         title={confirmModal.title}
         message={confirmModal.message}
-        confirmText="Confirm"
-        cancelText="Cancel"
+        confirmText={t('confirm')}
+        cancelText={t('cancel')}
       />
     </div>
   );

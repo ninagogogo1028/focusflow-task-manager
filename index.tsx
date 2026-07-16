@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { I18nProvider } from './i18n';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -25,6 +26,6 @@ root.render(
         .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
       `}
     </style>
-    <App />
+    <I18nProvider><App /></I18nProvider>
   </React.StrictMode>
 );

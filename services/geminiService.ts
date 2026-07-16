@@ -18,8 +18,8 @@ async function callAi<T>(action: AiAction, payload: unknown): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const parseAutoTask = async (activityDescription: string): Promise<Partial<Task>> => {
-  const result = await callAi<{ task: Partial<Task> }>("parse-task", { activityDescription });
+export const parseAutoTask = async (activityDescription: string, fileContent?: string): Promise<Partial<Task>> => {
+  const result = await callAi<{ task: Partial<Task> }>("parse-task", { activityDescription, fileContent });
   return result.task;
 };
 

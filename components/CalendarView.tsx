@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Task } from '../types';
+import { useI18n } from '../i18n';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -7,6 +8,7 @@ interface CalendarViewProps {
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
+  const { locale } = useI18n();
   const [current, setCurrent] = useState(new Date());
   const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
   const startDay = new Date(current.getFullYear(), current.getMonth(), 1).getDay();
@@ -40,7 +42,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks }) => {
       </div>
 
       <div className="grid grid-cols-7 gap-px bg-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
-        {['SUN.', 'MON.', 'TUE.', 'WED.', 'THU.', 'FRI.', 'SAT.'].map(d => (
+        {(locale === 'zh-CN' ? ['日', '一', '二', '三', '四', '五', '六'] : ['SUN.', 'MON.', 'TUE.', 'WED.', 'THU.', 'FRI.', 'SAT.']).map(d => (
           <div key={d} className="bg-slate-50 p-2 md:p-4 text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase">
             {d}
           </div>

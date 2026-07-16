@@ -4,15 +4,18 @@ import { parseAutoTask } from '../services/geminiService';
 import DailyReportModal from './DailyReportModal';
 import CustomDatePicker from './CustomDatePicker';
 import ConfirmationModal from './ConfirmationModal';
+import { useI18n } from '../i18n';
 
 interface DashboardProps {
   tasks: Task[];
   onAddTask: (task: Task) => void;
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
   onDeleteTask: (id: string) => void;
+  onOpenCapture: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, onDeleteTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onOpenCapture }) => {
+  const { locale, t } = useI18n();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [quickTitle, setQuickTitle] = useState('');
@@ -36,8 +39,21 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
   });
 
   // Filter tasks to show only those due on or before today
-  const activeTasks = tasks.filter(t => !t.isArchived && t.dueDate <= new Date().toISOString().split('T')[0]);
+  const todayISO = new Date().toISOString().split('T')[0];
+  const activeTasks = tasks.filter(t => !t.isArchived && t.dueDate <= todayISO);
   const completedToday = tasks.filter(t => t.status === TaskStatus.COMPLETED && new Date(t.createdAt).toDateString() === new Date().toDateString()).length;
+  const pendingTasks = activeTasks.filter(t => t.status !== TaskStatus.COMPLETED);
+  const overdueCount = pendingTasks.filter(t => t.dueDate < todayISO).length;
+  const todayPendingCount = pendingTasks.filter(t => t.dueDate === todayISO).length;
+  const focusState = overdueCount > 0
+    ? { label: t('overdueFirst'), card: 'bg-rose-500', labelColor: 'text-rose-100' }
+    : todayPendingCount === 0
+      ? { label: t('allClear'), card: 'bg-emerald-500', labelColor: 'text-emerald-100' }
+      : todayPendingCount <= 3
+        ? { label: t('clear'), card: 'bg-indigo-600', labelColor: 'text-indigo-100' }
+        : todayPendingCount <= 6
+          ? { label: t('needsFocus'), card: 'bg-amber-500', labelColor: 'text-amber-100' }
+          : { label: t('heavyLoad'), card: 'bg-orange-600', labelColor: 'text-orange-100' };
 
   const startEditing = (task: Task) => {
     setEditingId(task.id);
@@ -95,7 +111,9 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
       const file = files[0];
       const description = `User dropped a file: ${file.name} (Type: ${file.type}, Size: ${Math.round(file.size / 1024)}KB)`;
       
-      const aiSuggestion = await parseAutoTask(description);
+      const content = file.size <= 100_000 && (file.type.startsWith('text/') || /\.(txt|md)$/i.test(file.name)) ? await file.text() : '';
+      if (!content) { setIsAnalyzing(false); onOpenCapture(); return; }
+      const aiSuggestion = await parseAutoTask(description, content);
       
       const newTask: Task = {
         id: Date.now().toString(),
@@ -121,15 +139,6 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <section className="bg-gradient-to-br from-slate-950 via-indigo-950 to-indigo-700 text-white rounded-[2rem] p-7 md:p-10 shadow-xl shadow-indigo-100 overflow-hidden relative">
-        <div className="relative z-10 max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-200 mb-3">Start every day with a clear plan</p>
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight">每天打开，直接知道今天该做什么。</h2>
-          <p className="mt-4 text-indigo-100 leading-relaxed">FocusFlow 汇总昨天未完成的事项、今天的任务与提醒，把忙乱变成一份可以马上开始的计划。</p>
-        </div>
-        <div className="absolute -right-12 -bottom-20 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
-      </section>
-
       {/* AI Dropzone Overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 bg-indigo-600/20 backdrop-blur-md flex items-center justify-center border-4 border-dashed border-indigo-500 m-4 rounded-[3rem] animate-pulse">
@@ -144,16 +153,16 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
       <div className="flex items-stretch justify-between">
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm transition-transform hover:scale-[1.02]">
-            <p className="text-slate-500 text-sm font-medium">今日待处理</p>
-            <h3 className="text-3xl font-bold mt-1">{activeTasks.filter(t => t.status !== TaskStatus.COMPLETED).length}</h3>
+            <p className="text-slate-500 text-sm font-medium">{t('pending')}</p>
+            <h3 className="text-3xl font-bold mt-1">{pendingTasks.length}</h3>
           </div>
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm transition-transform hover:scale-[1.02]">
-            <p className="text-slate-500 text-sm font-medium">今日已完成</p>
+            <p className="text-slate-500 text-sm font-medium">{t('completedToday')}</p>
             <h3 className="text-3xl font-bold mt-1 text-emerald-600">{completedToday}</h3>
           </div>
-          <div className="bg-indigo-600 p-6 rounded-3xl shadow-lg shadow-indigo-100 text-white transition-transform hover:scale-[1.02]">
-            <p className="text-indigo-100 text-sm font-medium">今日状态</p>
-            <h3 className="text-3xl font-bold mt-1">清晰可行</h3>
+          <div className={`${focusState.card} p-6 rounded-3xl shadow-lg shadow-slate-200 text-white transition-all hover:scale-[1.02]`} title={overdueCount > 0 ? `${overdueCount} ${t('overdue')}` : `${todayPendingCount} ${t('pending')}`}>
+            <p className={`${focusState.labelColor} text-sm font-medium`}>{t('focus')}</p>
+            <h3 className="text-3xl font-bold mt-1">{focusState.label}</h3>
           </div>
         </div>
         <button 
@@ -161,21 +170,21 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
           className="ml-6 bg-slate-900 text-white p-6 rounded-3xl font-semibold hover:bg-slate-800 transition-colors shadow-lg active:scale-95 flex items-center justify-center"
           title="Generate Daily Report"
         >
-          <span className="text-base">今日总结</span>
+          <span className="text-base">{t('report')}</span>
         </button>
       </div>
 
       {/* Smart Dropzone Indicator */}
-      <div className="bg-indigo-50 border-2 border-dashed border-indigo-200 p-6 rounded-3xl flex items-center justify-center gap-4 text-indigo-700 group transition-all hover:border-indigo-400">
+      <button onClick={onOpenCapture} className="w-full bg-indigo-50 border-2 border-dashed border-indigo-200 p-6 rounded-3xl flex items-center justify-center gap-4 text-indigo-700 group transition-all hover:border-indigo-400 hover:bg-indigo-100/60">
         <span className="text-2xl group-hover:scale-125 transition-transform">{isAnalyzing ? '⌛' : '📥'}</span>
         <div className="text-sm font-medium">
-          {isAnalyzing ? 'AI 正在整理任务...' : '拖入文件，让 AI 帮你提取下一步行动'}
+          {isAnalyzing ? t('analyzing') : t('drop')}
         </div>
-      </div>
+      </button>
 
       {/* Quick Add */}
       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-bold mb-4">记下要做的事</h2>
+        <h2 className="text-lg font-bold mb-4">{t('addTitle')}</h2>
         <form onSubmit={handleQuickAdd} className="flex flex-col md:flex-row gap-4">
           <div className="flex w-full md:w-auto bg-slate-50 rounded-2xl p-1 border border-slate-200">
             <button
@@ -183,21 +192,21 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
               onClick={() => setQuickCategory('work')}
               className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-sm font-medium transition-all ${quickCategory === 'work' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              工作
+              {t('work')}
             </button>
             <button
               type="button"
               onClick={() => setQuickCategory('personal')}
               className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-sm font-medium transition-all ${quickCategory === 'personal' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              个人
+              {t('personal')}
             </button>
           </div>
           <input
             type="text"
             value={quickTitle}
             onChange={(e) => setQuickTitle(e.target.value)}
-            placeholder="今天有什么需要推进？"
+            placeholder={t('addPlaceholder')}
             className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
           />
           <CustomDatePicker 
@@ -205,7 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
             onChange={setQuickDate}
           />
           <button className="w-full md:w-auto bg-slate-900 text-white px-8 py-4 md:py-0 rounded-2xl font-semibold hover:bg-slate-800 transition-colors shadow-lg active:scale-95">
-            添加任务
+            {t('addTask')}
           </button>
         </form>
       </div>
@@ -213,8 +222,8 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
       {/* Task List Preview */}
       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold mb-6 flex items-center justify-between">
-          今天先做这些
-          <span className="text-xs text-slate-400 font-normal uppercase tracking-widest">优先 5 项</span>
+          {t('priorities')}
+          <span className="text-xs text-slate-400 font-normal uppercase tracking-widest">{t('topFive')}</span>
         </h2>
         <div className="space-y-4">
           {activeTasks.slice(0, 5).map(task => (
@@ -235,8 +244,8 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
                           if (e.key === 'Escape') cancelEdit();
                         }}
                       />
-                      <button onClick={() => saveEdit(task.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded">Save</button>
-                      <button onClick={cancelEdit} className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Cancel</button>
+                      <button onClick={() => saveEdit(task.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded">{t('save')}</button>
+                      <button onClick={cancelEdit} className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">{t('cancel')}</button>
                     </div>
                   ) : (
                     <h4 className="font-semibold text-slate-800 flex items-center gap-2 group/title cursor-pointer" onClick={() => startEditing(task)}>
@@ -251,7 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
                   )}
                   <div className="flex items-center gap-3 mt-0.5">
                     <p className="text-xs text-slate-500 flex items-center gap-1">
-                      {task.source === 'auto' ? <><span className="text-indigo-500">✨</span> Auto-captured</> : '✍️ Manual'}
+                      {task.source === 'auto' ? <><span className="text-indigo-500">✦</span> {t('auto')}</> : `✎ ${t('manual')}`}
                     </p>
                     {task.reminderTime && (
                       <div className="flex items-center gap-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">
@@ -260,7 +269,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
                     )}
                     {task.dueDate < new Date().toISOString().split('T')[0] && (
                        <div className="flex items-center gap-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">
-                        📅 Overdue: {task.dueDate}
+                        {t('overdue')}: {task.dueDate}
                       </div>
                     )}
                   </div>
@@ -301,13 +310,13 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
                     onClick={() => {
                       setConfirmModal({
                         isOpen: true,
-                        title: 'Delete Task',
-                        message: 'Are you sure you want to delete this task?',
+                        title: t('deleteTask'),
+                        message: t('deleteConfirm'),
                         onConfirm: () => onDeleteTask(task.id)
                       });
                     }}
                     className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-2"
-                    title="Delete task"
+                    title={t('deleteTask')}
                   >
                     ✕
                   </button>
@@ -318,7 +327,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
           {activeTasks.length === 0 && (
             <div className="text-center py-10">
               <div className="text-4xl mb-2">🏖️</div>
-              <p className="text-slate-400">今天没有待处理任务，放心安排自己的时间吧。</p>
+              <p className="text-slate-400">{t('emptyToday')}</p>
             </div>
           )}
         </div>
@@ -330,10 +339,10 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, onAddTask, onUpdateTask, o
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={confirmModal.onConfirm}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        confirmText="Confirm"
-        cancelText="Cancel"
+        title={locale === 'zh-CN' ? t('deleteTask') : confirmModal.title}
+        message={locale === 'zh-CN' ? t('deleteConfirm') : confirmModal.message}
+        confirmText={t('confirm')}
+        cancelText={t('cancel')}
       />
     </div>
   );

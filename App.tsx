@@ -12,22 +12,36 @@ import { getDailyRecap } from './services/geminiService';
 import PricingModal from './components/PricingModal';
 import ApiKeyModal from './components/ApiKeyModal';
 import { hasUserApiKey } from './services/apiKeyStorage';
+import { useI18n } from './i18n';
+import WelcomeModal from './components/WelcomeModal';
+import CaptureModal from './components/CaptureModal';
+import ProductGuideModal from './components/ProductGuideModal';
 
 const App: React.FC = () => {
+  const { locale, setLocale, t } = useI18n();
   const tabTitles = {
-    dashboard: '今日计划',
-    kanban: '任务看板',
-    calendar: '日历',
-    archive: '已完成',
+    dashboard: t('todayPlan'),
+    kanban: t('taskBoard'),
+    calendar: t('calendar'),
+    archive: t('completed'),
   } as const;
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('focusflow_tasks');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   });
   const [activeTab, setActiveTab] = useState<'dashboard' | 'kanban' | 'calendar' | 'archive'>('dashboard');
   const [showRecap, setShowRecap] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showCapture, setShowCapture] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('focusflow_onboarding_v1'));
+  const [showProductGuide, setShowProductGuide] = useState(false);
   const [apiKeyConnected, setApiKeyConnected] = useState(hasUserApiKey());
   const [recapContent, setRecapContent] = useState('');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -68,6 +82,7 @@ const App: React.FC = () => {
 
   // Morning Recap Logic
   useEffect(() => {
+    if (showWelcome || tasks.length === 0) return;
     // Use a versioned key to force reset for users who missed it due to bugs
     const RECAP_STORAGE_KEY = 'last_recap_date_v5';
     const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
@@ -105,13 +120,13 @@ const App: React.FC = () => {
       }).catch(err => {
         console.error("Failed to generate recap:", err);
         // Fallback content if AI fails (e.g. network issue or API key restriction)
-        const fallbackContent = `Here is your daily summary:\n\n- Overdue Tasks: ${overdue.length}\n- Today's Tasks: ${todayTasks.length}\n\nLet's have a productive day!`;
+        const fallbackContent = locale === 'zh-CN' ? `今日计划\n\n逾期任务：${overdue.length}\n今日任务：${todayTasks.length}\n\n先选择一件最重要的事开始吧。` : `Daily plan\n\nOverdue: ${overdue.length}\nToday: ${todayTasks.length}\n\nChoose the single most important task and begin.`;
         setRecapContent(fallbackContent);
         setShowRecap(true);
         localStorage.setItem(RECAP_STORAGE_KEY, today);
       });
     }
-  }, [tasks]);
+  }, [tasks, locale, showWelcome]);
 
   const addTask = (newTask: Task) => {
     setTasks(prev => [newTask, ...prev]);
@@ -176,7 +191,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onOpenGuide={() => setShowProductGuide(true)} />
       
       <main className="flex-1 overflow-y-auto relative flex flex-col">
         <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
@@ -184,19 +199,24 @@ const App: React.FC = () => {
             {tabTitles[activeTab]}
           </h1>
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Free</span>
+            <div className="flex bg-slate-100 rounded-xl p-1 text-xs font-bold">
+              <button onClick={() => setLocale('zh-CN')} className={`px-2.5 py-1.5 rounded-lg ${locale === 'zh-CN' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>中</button>
+              <button onClick={() => setLocale('en')} className={`px-2.5 py-1.5 rounded-lg ${locale === 'en' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>EN</button>
+            </div>
+            <button onClick={() => setShowWelcome(true)} className="hidden lg:inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600">{t('help')}</button>
+            <span className="hidden xl:inline-flex text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">{t('free')}</span>
             <button onClick={() => setShowPricing(true)} className="text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors">
-              查看 Pro
+              {t('pro')}
             </button>
             <button onClick={() => setShowApiKey(true)} className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${apiKeyConnected ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-700 bg-slate-100 hover:bg-slate-200'}`}>
-              {apiKeyConnected ? 'AI 已连接' : '连接 AI'}
+              {apiKeyConnected ? t('aiConnected') : t('connectAi')}
             </button>
-            <ActivityMonitor onAddTask={addTask} />
+            <ActivityMonitor onOpen={() => setShowCapture(true)} />
           </div>
         </header>
 
         <div className="p-4 md:p-8 flex-1 pb-24 md:pb-8">
-          {activeTab === 'dashboard' && <Dashboard tasks={tasks} onUpdateTask={updateTask} onAddTask={addTask} onDeleteTask={deleteTask} />}
+          {activeTab === 'dashboard' && <Dashboard tasks={tasks} onUpdateTask={updateTask} onAddTask={addTask} onDeleteTask={deleteTask} onOpenCapture={() => setShowCapture(true)} />}
           {activeTab === 'kanban' && <KanbanView tasks={tasks} onUpdateTask={updateTask} onUpdateStatus={updateTaskStatus} onDeleteTask={deleteTask} />}
           {activeTab === 'calendar' && <CalendarView tasks={tasks} onSelectTask={(id) => { /* Focus task */ }} />}
           {activeTab === 'archive' && (
@@ -214,6 +234,9 @@ const App: React.FC = () => {
       {showRecap && <RecapModal content={recapContent} onClose={() => setShowRecap(false)} />}
       {showPricing && <PricingModal onClose={() => setShowPricing(false)} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} onChanged={() => setApiKeyConnected(hasUserApiKey())} />}
+      {showCapture && <CaptureModal locale={locale} onClose={() => setShowCapture(false)} onAddTask={addTask} onConnectAi={() => setShowApiKey(true)} />}
+      {showWelcome && <WelcomeModal locale={locale} onFinish={() => { localStorage.setItem('focusflow_onboarding_v1', 'done'); setShowWelcome(false); }} />}
+      {showProductGuide && <ProductGuideModal onClose={() => setShowProductGuide(false)} onOpenAi={() => setShowApiKey(true)} />}
     </div>
   );
 };
