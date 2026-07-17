@@ -20,6 +20,33 @@ import FeedbackModal from './components/FeedbackModal';
 import DataSettingsModal from './components/DataSettingsModal';
 import { track } from './services/analytics';
 
+const getLocalDateKey = (date: Date) => {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60 * 1000).toISOString().split('T')[0];
+};
+
+const buildMorningBrief = (locale: 'zh-CN' | 'en', completedYesterday: Task[], overdue: Task[], todayTasks: Task[]) => {
+  const pick = (items: Task[]) => items.slice(0, 3).map((task) => `• ${task.title}`).join('\n');
+  if (locale === 'zh-CN') {
+    return [
+      '昨日工作回顾',
+      completedYesterday.length ? `已完成 ${completedYesterday.length} 项：\n${pick(completedYesterday)}` : '昨天暂无完成记录，今天重新开始也很好。',
+      '',
+      '今日工作提醒',
+      overdue.length ? `先处理 ${overdue.length} 项逾期任务：\n${pick(overdue)}` : '没有逾期任务。',
+      todayTasks.length ? `今天计划推进 ${todayTasks.length} 项：\n${pick(todayTasks)}` : '今天暂无到期任务，可以安排一件最重要的事。',
+    ].join('\n');
+  }
+  return [
+    'Yesterday at a glance',
+    completedYesterday.length ? `${completedYesterday.length} completed:\n${pick(completedYesterday)}` : 'No completed items were recorded yesterday. Today is a fresh start.',
+    '',
+    'Today’s reminder',
+    overdue.length ? `Start with ${overdue.length} overdue item(s):\n${pick(overdue)}` : 'Nothing is overdue.',
+    todayTasks.length ? `${todayTasks.length} item(s) are due today:\n${pick(todayTasks)}` : 'Nothing is due today. Choose one meaningful priority.',
+  ].join('\n');
+};
+
 const App: React.FC = () => {
   const { locale, setLocale, t } = useI18n();
   const tabTitles = {
@@ -88,51 +115,35 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [tasks, firedReminders]);
 
-  // Morning Recap Logic
+  // Show a reliable local morning brief once per calendar day. AI enhancement is optional.
   useEffect(() => {
     if (showWelcome || tasks.length === 0) return;
-    // Use a versioned key to force reset for users who missed it due to bugs
-    const RECAP_STORAGE_KEY = 'last_recap_date_v5';
+    const RECAP_STORAGE_KEY = 'focusflow_last_morning_brief_date_v1';
     const lastRecapDate = localStorage.getItem(RECAP_STORAGE_KEY);
     const now = new Date();
-    const today = now.toDateString();
-    
-    // Get YYYY-MM-DD in local time
-    const getLocalISODate = (date: Date) => {
-      const offset = date.getTimezoneOffset();
-      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-      return localDate.toISOString().split('T')[0];
-    };
+    const today = getLocalDateKey(now);
+    if (lastRecapDate === today) return;
 
-    if (lastRecapDate !== today) {
-      // Use strictly before today (local time) to catch all overdue/yesterday tasks
-      const todayISO = getLocalISODate(now);
-      
-      const overdue = tasks.filter(t => 
-        !t.isArchived && 
-        t.status !== TaskStatus.COMPLETED && 
-        t.dueDate < todayISO // Tasks due before today
-      );
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = getLocalDateKey(yesterday);
+    const completedYesterday = tasks.filter((task) =>
+      task.status === TaskStatus.COMPLETED &&
+      Boolean(task.archivedAt) &&
+      getLocalDateKey(new Date(task.archivedAt as number)) === yesterdayKey
+    );
+    const overdue = tasks.filter((task) => !task.isArchived && task.status !== TaskStatus.COMPLETED && task.dueDate < today);
+    const todayTasks = tasks.filter((task) => !task.isArchived && task.status !== TaskStatus.COMPLETED && task.dueDate === today);
 
-      const todayTasks = tasks.filter(t => 
-        !t.isArchived && 
-        t.status !== TaskStatus.COMPLETED && 
-        t.dueDate === todayISO // Tasks due today
-      );
-      
-      // Always trigger recap to greet the user, even if no overdue tasks
-      getDailyRecap(overdue, todayTasks).then(content => {
-        setRecapContent(content);
-        setShowRecap(true);
-        localStorage.setItem(RECAP_STORAGE_KEY, today);
-      }).catch(err => {
-        console.error("Failed to generate recap:", err);
-        // Fallback content if AI fails (e.g. network issue or API key restriction)
-        const fallbackContent = locale === 'zh-CN' ? `今日计划\n\n逾期任务：${overdue.length}\n今日任务：${todayTasks.length}\n\n先选择一件最重要的事开始吧。` : `Daily plan\n\nOverdue: ${overdue.length}\nToday: ${todayTasks.length}\n\nChoose the single most important task and begin.`;
-        setRecapContent(fallbackContent);
-        setShowRecap(true);
-        localStorage.setItem(RECAP_STORAGE_KEY, today);
-      });
+    // Mark and display immediately so the brief never depends on network or AI availability.
+    localStorage.setItem(RECAP_STORAGE_KEY, today);
+    setRecapContent(buildMorningBrief(locale, completedYesterday, overdue, todayTasks));
+    setShowRecap(true);
+
+    if (hasUserApiKey()) {
+      getDailyRecap(completedYesterday, overdue, todayTasks)
+        .then((content) => { if (content.trim()) setRecapContent(content); })
+        .catch((error) => console.info('AI morning brief enhancement skipped:', error));
     }
   }, [tasks, locale, showWelcome]);
 
@@ -158,7 +169,10 @@ const App: React.FC = () => {
       const task = tasks.find((item) => item.id === id);
       if (task) track('task_completed', { category: task.category || 'uncategorized', source: task.source || 'manual', version: '0.2.0-beta' });
     }
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const completionUpdates = updates.status === TaskStatus.COMPLETED
+      ? { isArchived: true, archivedAt: updates.archivedAt || Date.now() }
+      : {};
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates, ...completionUpdates } : t));
   };
 
   const deleteTask = (id: string) => {
@@ -217,7 +231,6 @@ const App: React.FC = () => {
               <button onClick={() => setLocale('zh-CN')} className={`px-2.5 py-1.5 rounded-lg ${locale === 'zh-CN' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>中</button>
               <button onClick={() => setLocale('en')} className={`px-2.5 py-1.5 rounded-lg ${locale === 'en' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>EN</button>
             </div>
-            <button onClick={() => setShowWelcome(true)} className="hidden lg:inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600">{t('help')}</button>
             <button onClick={() => setShowFeedback(true)} className="inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600" title={locale === 'zh-CN' ? '反馈' : 'Feedback'}><span className="lg:hidden">💬</span><span className="hidden lg:inline">{locale === 'zh-CN' ? '反馈' : 'Feedback'}</span></button>
             <button onClick={() => setShowDataSettings(true)} className="inline-flex text-sm font-bold text-slate-500 hover:text-indigo-600" title={locale === 'zh-CN' ? '数据与隐私' : 'Data & Privacy'}><span className="lg:hidden">⚙</span><span className="hidden lg:inline">{locale === 'zh-CN' ? '数据' : 'Data'}</span></button>
             <span className="hidden xl:inline-flex text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">{t('free')}</span>

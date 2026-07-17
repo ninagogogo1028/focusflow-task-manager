@@ -15,7 +15,7 @@ const copy = {
     todo: '待办', inProgress: '进行中', done: '已完成', reminder: '提醒时间', nextSteps: '下一步', addStep: '添加下一步…', moveBack: '上一步', nextStage: '下一阶段',
     archiveTitle: '完成记录', archiveEmpty: '还没有完成记录。完成一件任务后，它会出现在这里。', restore: '恢复任务', keep: '永久保留', unkeep: '取消保留', daysLeft: '{count} 天后自动清理',
     reportTitle: '今日总结', copy: '复制到剪贴板', close: '关闭', copied: '已复制',
-    sidebarTitle: '每日清晰计划', sidebarDesc: '整理逾期事项与今日任务，让你打开 FocusFlow 就知道先做什么。',
+    sidebarTitle: '每日自动早报', sidebarDesc: '每天首次打开，自动回顾昨天的进展，并整理逾期事项与今日任务。',
   },
   en: {
     today: 'Today', board: 'Board', calendar: 'Calendar', archive: 'Archive', todayPlan: 'Today', taskBoard: 'Task Board', completed: 'Completed',
@@ -28,7 +28,7 @@ const copy = {
     todo: 'To Do', inProgress: 'In Progress', done: 'Done', reminder: 'Reminder', nextSteps: 'Next Steps', addStep: 'Add next step…', moveBack: 'Move Back', nextStage: 'Next Stage',
     archiveTitle: 'Completed Archive', archiveEmpty: 'No completed tasks yet. Finish one and it will appear here.', restore: 'Restore', keep: 'Keep Forever', unkeep: 'Unkeep', daysLeft: 'Auto-clears in {count} days',
     reportTitle: 'Daily Report', copy: 'Copy to Clipboard', close: 'Close', copied: 'Copied',
-    sidebarTitle: 'A Clear Daily Plan', sidebarDesc: 'Bring overdue and today’s tasks together so you always know what to do first.',
+    sidebarTitle: 'Automatic Morning Brief', sidebarDesc: 'Your first visit each day reviews yesterday’s progress and organizes overdue and today’s tasks.',
   },
 } as const;
 

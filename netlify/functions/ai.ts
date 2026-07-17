@@ -95,6 +95,7 @@ export const handler = async (event: HandlerEvent) => {
     }
 
     if (action === "daily-recap") {
+      const completedYesterday = Array.isArray(payload?.completedYesterday) ? payload.completedYesterday.slice(0, 50) : [];
       const overdueTasks = Array.isArray(payload?.overdueTasks) ? payload.overdueTasks.slice(0, 50) : [];
       const todayTasks = Array.isArray(payload?.todayTasks) ? payload.todayTasks.slice(0, 50) : [];
       const safeTitles = (tasks: Array<{ title?: unknown }>) => tasks
@@ -103,7 +104,7 @@ export const handler = async (event: HandlerEvent) => {
         .map((title) => `- ${title}`)
         .join("\n");
 
-      const prompt = `你是一个专业但温暖的效率教练。生成一份简短、清晰、可执行的中文每日计划。不要使用 Markdown 标题。\n\n逾期任务：\n${safeTitles(overdueTasks) || "无"}\n\n今日任务：\n${safeTitles(todayTasks) || "无"}\n\n先温和处理逾期事项，再提炼今天最重要的 1–3 个方向。不要编造任务。`;
+      const prompt = `你是一个专业但温暖的效率教练。生成一份简短、清晰、可执行的中文晨间简报。不要使用 Markdown 标题。\n\n昨天完成：\n${safeTitles(completedYesterday) || "无"}\n\n逾期任务：\n${safeTitles(overdueTasks) || "无"}\n\n今日任务：\n${safeTitles(todayTasks) || "无"}\n\n先肯定昨天的进展，再温和处理逾期事项，最后提炼今天最重要的 1–3 个方向。不要编造任务。`;
       const content = await requestAi(prompt, false, aiConfig);
       return json(200, { content });
     }

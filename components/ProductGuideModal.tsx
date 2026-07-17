@@ -7,14 +7,14 @@ const ProductGuideModal: React.FC<{ onClose: () => void; onOpenAi: () => void; }
   const sections = zh ? [
     { icon: '☀️', title: '从今日计划开始', text: '首页汇总今天与逾期任务。状态卡会根据任务量动态提醒你轻松开始、保持聚焦或优先处理逾期。' },
     { icon: '✎', title: '快速记录任务', text: '输入事项，选择工作或个人分类并设置日期。任务可以在看板中推进、在日历中查看、完成后进入归档。' },
-    { icon: '✦', title: 'AI 捕捉行动项', text: '连接你自己的 AI API 后，可粘贴会议记录、聊天摘要或选择 .txt / .md 文件，让 AI 提取任务和下一步。' },
-    { icon: '🔔', title: '提醒与每日总结', text: '给任务设置提醒时间，并用“今日总结”快速回顾已完成与待处理事项。网页提醒需要保持页面打开并允许浏览器通知。' },
+    { icon: '✦', title: 'AI 捕捉行动项', text: '连接你自己的 AI API 后，可粘贴会议记录、聊天摘要或选择 .txt / .md / .csv / .json 文本文件，让 AI 提取任务和下一步。' },
+    { icon: '🌅', title: '每天自动早报', text: '每天首次打开或跨天后刷新 FocusFlow，会自动回顾昨天完成的工作，并整理逾期事项、今日任务和优先方向；无需连接 AI 也能使用。' },
     { icon: '🔒', title: '数据与隐私', text: '当前免费版任务保存在你的浏览器本地，不会展示给其他用户。清理浏览器数据或更换设备时不会自动同步；云同步属于规划中的 Pro 能力。' },
   ] : [
     { icon: '☀️', title: 'Begin with Today', text: 'The home view brings together today’s and overdue tasks. Your status changes with workload so you know whether to relax, focus or clear overdue work first.' },
     { icon: '✎', title: 'Capture Tasks Quickly', text: 'Add a task, choose Work or Personal, and set a date. Move work on the Board, see it on the Calendar, and find completed items in Archive.' },
-    { icon: '✦', title: 'Capture Actions with AI', text: 'Connect your own AI API, then paste notes or choose a .txt / .md file to extract a task and next steps.' },
-    { icon: '🔔', title: 'Reminders & Daily Report', text: 'Set reminder times and use Daily Report to review completed and pending work. Browser reminders require the page to remain open and notification permission.' },
+    { icon: '✦', title: 'Capture Actions with AI', text: 'Connect your own AI API, then paste notes or choose a .txt / .md / .csv / .json text file to extract a task and next steps.' },
+    { icon: '🌅', title: 'Automatic Morning Brief', text: 'Your first visit each day—or a refresh after the date changes—reviews yesterday’s completed work and organizes overdue items, today’s tasks and priorities. AI is optional.' },
     { icon: '🔒', title: 'Data & Privacy', text: 'Free-plan tasks currently stay in this browser and are never shown to other users. Clearing browser data or changing devices will not sync them yet; cloud sync is planned for Pro.' },
   ];
 

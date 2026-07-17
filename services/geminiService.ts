@@ -23,8 +23,9 @@ export const parseAutoTask = async (activityDescription: string, fileContent?: s
   return result.task;
 };
 
-export const getDailyRecap = async (overdueTasks: Task[], todayTasks: Task[]): Promise<string> => {
+export const getDailyRecap = async (completedYesterday: Task[], overdueTasks: Task[], todayTasks: Task[]): Promise<string> => {
   const result = await callAi<{ content: string }>("daily-recap", {
+    completedYesterday: completedYesterday.map(({ title }) => ({ title })),
     overdueTasks: overdueTasks.map(({ title }) => ({ title })),
     todayTasks: todayTasks.map(({ title }) => ({ title })),
   });

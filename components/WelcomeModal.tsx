@@ -10,7 +10,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ locale, onFinish }) => {
     {
       eyebrow: 'FOCUSFLOW',
       title: zh ? '陪伴你度过清晰的每一天✨' : 'Start every day with a clear plan.',
-      text: zh ? '把昨天没完成的、今天要推进的，都收进一份可以马上开始的计划。' : 'Bring yesterday’s unfinished work and today’s priorities into one plan you can act on.',
+      text: zh ? '每天首次打开，自动回顾昨天的进展，并把逾期事项和今天要推进的任务整理成一份清晰早报。' : 'Your first visit each day reviews yesterday’s progress and turns overdue items and today’s priorities into a clear morning brief.',
       visual: '☀️',
     },
     {
